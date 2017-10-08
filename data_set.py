@@ -7,8 +7,8 @@ class DataSet(object):
         if len(data) != len(labels):
             raise ValueError
 
-        self._data = data
-        self._labels = labels
+        self._data = np.array(data)
+        self._labels = np.array(labels)
         self._epoch = 0
         self._offset = 0
 

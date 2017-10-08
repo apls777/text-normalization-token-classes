@@ -1,6 +1,7 @@
 import os
 import tensorflow as tf
 import utils
+from data_set import DataSet
 from token_classes.data_sets import DataSets
 from token_classes.model import Model
 import logging
@@ -47,6 +48,8 @@ class Session(object):
         utils.check_path(self._logs_path)
         summary_writer = tf.summary.FileWriter(self._logs_path, self._sess.graph)
 
+        self._logger.debug('Start training')
+
         # start training
         while True:
             # get batch of data
@@ -74,6 +77,9 @@ class Session(object):
                 accuracy /= validation_steps
 
                 self._logger.info('Step=%d, Loss=%.5f, Accuracy=%.5f' % (global_step, cost, accuracy))
+
+    def predict(self, data_set: DataSet):
+        return self._model.get_predictions(self._sess, data_set)
 
     def _save_session(self, global_step):
         checkpoint_path = os.path.join(self._session_path, 'model.ckpt')
