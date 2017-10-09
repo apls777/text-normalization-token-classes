@@ -1,15 +1,22 @@
 import tensorflow as tf
-
 from token_classes.prediction_model import PredictionModel
 
 
 class TrainingModel(PredictionModel):
-    def __init__(self, learning_rate: float, char_dim: int, token_dim: int, num_chars: int, num_classes: int,
-                 batch_size: int, num_token_dependencies: int, token_num_layers: int = 1):
+    def __init__(self,
+                 learning_rate: float,
+                 char_dim: int,
+                 token_dim: int,
+                 num_chars: int,  # number of characters in a token
+                 num_classes: int,  # number of possible token classes
+                 batch_size: int,  # number of tokens in a batch
+                 num_token_dependencies: int,  # token class depends on X tokens to the left
+                 token_num_layers: int = 1):
+
         super().__init__(char_dim, token_dim, num_chars, num_classes, batch_size, num_token_dependencies,
                          token_num_layers)
 
-        # modifying the model for training
+        # modifying the training model
         with self._graph.as_default():
             self._labels = tf.placeholder(tf.uint8, shape=(batch_size,), name='token_classes')
             self._global_step = tf.Variable(0, trainable=False)

@@ -1,9 +1,9 @@
 import tensorflow as tf
 from tensorflow.contrib import rnn
-import logging
+from abstract_model import AbstractModel
 
 
-class PredictionModel(object):
+class PredictionModel(AbstractModel):
     def __init__(self,
                  char_dim: int,
                  token_dim: int,
@@ -13,11 +13,7 @@ class PredictionModel(object):
                  num_token_dependencies: int,  # token class depends on X tokens to the left
                  token_num_layers: int = 1):
 
-        logger = logging.getLogger(__name__)
-        logger.debug('Building the model')
-
-        # create a graph
-        self._graph = tf.Graph()
+        super().__init__()
 
         # build the model
         with self._graph.as_default():
@@ -59,14 +55,10 @@ class PredictionModel(object):
 
             W = tf.Variable(tf.zeros([token_dim * (num_token_dependencies + 1), num_classes]))
             b = tf.Variable(tf.zeros([num_classes]))
-            self._raw_predictions = tf.matmul(x, W) + b
+            self._raw_predictions = tf.matmul(x, W) + b  # dim: [batch_size, num_classes]
 
             # predictions
-            self._predictions = tf.argmax(self._raw_predictions, 1)
-
-    @property
-    def graph(self):
-        return self._graph
+            self._predictions = tf.argmax(self._raw_predictions, 1)  # dim: [batch_size]
 
     def get_predictions(self, sess, data):
         feed_dict = {self._tokens: data}
