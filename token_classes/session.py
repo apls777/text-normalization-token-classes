@@ -3,50 +3,41 @@ import tensorflow as tf
 import utils
 from data_set import DataSet
 from token_classes.data_sets import DataSets
-from token_classes.model import Model
+from token_classes.training_model import TrainingModel
 import logging
 
 
 class Session(object):
-    def __init__(self, model: Model, training_dir: str, restore_latest_session: bool = False):
+    def __init__(self, model: TrainingModel, session_dir: str, restore_latest_session: bool = False):
         self._logger = logging.getLogger(__name__)
         self._model = model
 
         # create a session
         self._sess = tf.Session(graph=self._model.graph)
 
-        # get ID of last saved session
-        dirs = sorted(os.listdir(training_dir), reverse=True)
-        last_session_id = int(dirs[0].split('_')[1]) if dirs else 0
-
-        # set ID for current session
-        if restore_latest_session and last_session_id:
-            session_id = last_session_id
-        else:
-            session_id = last_session_id + 1
-
-        # paths to session files and to tensorboard logs
-        self._session_path = os.path.join(training_dir, 'session_%d' % session_id)
-        self._logs_path = os.path.join(self._session_path, 'logs')
+        # paths to checkpoints and tensorboard logs
+        self._checkpoints_dir = os.path.join(session_dir, 'checkpoints')
+        self._logs_dir = os.path.join(session_dir, 'logs')
 
         # session saver
         with self._sess.graph.as_default():
             self._saver = tf.train.Saver()
 
-        # restore a checkpoint or initialize a model
-        checkpoint = tf.train.get_checkpoint_state(self._session_path)
+        # restore a checkpoint or initialize the model with fresh parameters
+        checkpoint = tf.train.get_checkpoint_state(self._checkpoints_dir)
         if checkpoint and tf.train.checkpoint_exists(checkpoint.model_checkpoint_path):
-            self._logger.info('Initializing model with parameters from "%s"' % checkpoint.model_checkpoint_path)
+            self._logger.info('Initializing the model with parameters from "%s"' % checkpoint.model_checkpoint_path)
             self._saver.restore(self._sess, checkpoint.model_checkpoint_path)
         else:
-            self._logger.info('Initializing model with fresh parameters')
-            utils.check_path(self._session_path)
-            self._model.init_variables(self._sess)
+            self._logger.info('Initializing the model with fresh parameters')
+            utils.check_path(self._checkpoints_dir)
+            with self._sess.graph.as_default():
+                self._sess.run(tf.global_variables_initializer())
 
     def train(self, data_sets: DataSets, batch_size: int, checkpoint_steps: int):
         # init summary writer
-        utils.check_path(self._logs_path)
-        summary_writer = tf.summary.FileWriter(self._logs_path, self._sess.graph)
+        utils.check_path(self._logs_dir)
+        summary_writer = tf.summary.FileWriter(self._logs_dir, self._sess.graph)
 
         self._logger.debug('Start training')
 
@@ -82,7 +73,7 @@ class Session(object):
         return self._model.get_predictions(self._sess, data_set)
 
     def _save_session(self, global_step):
-        checkpoint_path = os.path.join(self._session_path, 'model.ckpt')
+        checkpoint_path = os.path.join(self._checkpoints_dir, 'model.ckpt')
         return self._saver.save(self._sess, checkpoint_path, global_step=global_step)
 
     def __del__(self):
