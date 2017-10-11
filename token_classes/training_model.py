@@ -10,11 +10,12 @@ class TrainingModel(PredictionModel):
                  num_chars: int,  # number of characters in a token
                  num_classes: int,  # number of possible token classes
                  batch_size: int,  # number of tokens in a batch
-                 num_token_dependencies: int,  # token class depends on X tokens to the left
+                 num_tokens_left: int,  # token class depends on X tokens to the left
+                 num_tokens_right: int,  # token class depends on X tokens to the right
                  token_num_layers: int = 1):
 
-        super().__init__(char_dim, token_dim, num_chars, num_classes, batch_size, num_token_dependencies,
-                         token_num_layers)
+        super().__init__(char_dim, token_dim, num_chars, num_classes, batch_size, num_tokens_left,
+                         num_tokens_right, token_num_layers)
 
         # modifying the training model
         with self._graph.as_default():

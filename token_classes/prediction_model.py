@@ -10,7 +10,8 @@ class PredictionModel(AbstractModel):
                  num_chars: int,  # number of characters in a token
                  num_classes: int,  # number of possible token classes
                  batch_size: int,  # number of tokens in a batch
-                 num_token_dependencies: int,  # token class depends on X tokens to the left
+                 num_tokens_left: int,  # token class depends on X tokens to the left
+                 num_tokens_right: int,  # token class depends on X tokens to the right
                  token_num_layers: int = 1):
 
         super().__init__()
@@ -41,19 +42,20 @@ class PredictionModel(AbstractModel):
             vectorized_tokens = outputs[num_chars - 1]  # dim: [batch_size, token_dim]
 
             # add two empty tokens to the beginning of the batch
-            vectorized_tokens = tf.pad(vectorized_tokens,
-                                       [[num_token_dependencies, 0], [0, 0]])  # dim: [batch_size + X, num_chars]
+            # dim: [batch_size + num_tokens_left + num_tokens_right, num_chars]
+            vectorized_tokens = tf.pad(vectorized_tokens, [[num_tokens_left, num_tokens_right], [0, 0]])
 
             # build full-connected layer
+            num_related_tokens = num_tokens_left + num_tokens_right + 1
             x = []
+
             for i in range(0, batch_size):
-                # dim: [num_token_dependencies + 1, token_dim]
-                tokens_group = vectorized_tokens[i:i + num_token_dependencies + 1]
-                x.append(tf.reshape(tokens_group, [token_dim * (num_token_dependencies + 1)]))
+                tokens_group = vectorized_tokens[i:i + num_related_tokens]  # dim: [num_related_tokens, token_dim]
+                x.append(tf.reshape(tokens_group, [token_dim * num_related_tokens]))
 
-            x = tf.stack(x)  # dim: [batch_size, token_dim * (num_token_dependencies + 1)]
+            x = tf.stack(x)  # dim: [batch_size, token_dim * num_related_tokens]
 
-            W = tf.Variable(tf.zeros([token_dim * (num_token_dependencies + 1), num_classes]))
+            W = tf.Variable(tf.zeros([token_dim * num_related_tokens, num_classes]))
             b = tf.Variable(tf.zeros([num_classes]))
             self._raw_predictions = tf.matmul(x, W) + b  # dim: [batch_size, num_classes]
 

@@ -1,15 +1,15 @@
-import os
-import tensorflow as tf
-import utils
-from abstract_model import AbstractModel
-from data.errors import write_errors_file
-import token_classes.data_sets as ds
-from token_classes.prediction_model import PredictionModel
-from token_classes.training_model import TrainingModel
-import logging
 import json
+import logging
+import os
 from shutil import copyfile
 import numpy as np
+import tensorflow as tf
+import token_classes.data_sets as ds
+import utils
+from abstract_model import AbstractModel
+from token_classes.helpers import write_errors_file
+from token_classes.prediction_model import PredictionModel
+from token_classes.training_model import TrainingModel
 
 
 class Session(object):
@@ -44,8 +44,8 @@ class Session(object):
 
         # create a training model
         model = TrainingModel(learning_rate, char_dim, config['params']['token_dim'], config['params']['num_chars'],
-                              num_classes, batch_size, config['params']['num_token_dependencies'],
-                              config['params']['token_num_layers'])
+                              num_classes, batch_size, config['params']['num_tokens_left'],
+                              config['params']['num_tokens_right'], config['params']['token_num_layers'])
 
         # get a session
         sess = self._init_session(model)
@@ -94,8 +94,8 @@ class Session(object):
 
         # create a prediction model
         model = PredictionModel(char_dim, config['params']['token_dim'], config['params']['num_chars'],
-                                num_classes, batch_size, config['params']['num_token_dependencies'],
-                                config['params']['token_num_layers'])
+                                num_classes, batch_size, config['params']['num_tokens_left'],
+                                config['params']['num_tokens_right'], config['params']['token_num_layers'])
 
         # get a session
         sess = self._init_session(model)
