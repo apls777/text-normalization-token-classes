@@ -3,6 +3,7 @@ import errno
 import typing
 import numpy as np
 from data_set import DataSet
+import re
 
 DataSets = typing.NamedTuple('DataSets', [('train', DataSet), ('validation', DataSet), ('test', DataSet)])
 
@@ -30,3 +31,13 @@ def log_loss(labels, predictions):
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
+
+
+def eval_expr(expr: str, values: dict) -> int:
+    for key in values:
+        expr = expr.replace(key, str(values[key]))
+
+    if not re.match('^[-+*/^.()0-9]*$', expr):
+        raise ValueError('Invalid expression')
+
+    return int(eval(expr))

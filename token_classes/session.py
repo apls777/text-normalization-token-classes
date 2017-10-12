@@ -17,21 +17,25 @@ class Session(object):
         self._logger = logging.getLogger(__name__)
 
         # session directory
-        session_dir = self._get_session_dir(latest_session, session_id)
+        self._session_dir = self._get_session_dir(latest_session, session_id)
 
         # paths to checkpoints and tensorboard logs
-        self._checkpoints_dir = os.path.join(session_dir, 'checkpoints')
-        self._logs_dir = os.path.join(session_dir, 'logs')
+        self._checkpoints_dir = os.path.join(self._session_dir, 'checkpoints')
+        self._logs_dir = os.path.join(self._session_dir, 'logs')
 
         # load configuration
-        self._config = self._read_config(session_dir)
+        self._config = self._read_config(self._session_dir)
         if not self._config:
             if default_config is not None:
                 # create a new model configuration
-                self._write_config(session_dir, default_config)
+                self._write_config(self._session_dir, default_config)
                 self._config = default_config
             else:
                 raise ValueError('Config not loaded')
+
+    @property
+    def session_dir(self):
+        return self._session_dir
 
     def train(self, all_tokens_file: str, batch_size: int, learning_rate: float, checkpoint_steps: int,
               tokens_limit: int = 0):
@@ -45,7 +49,8 @@ class Session(object):
         # create a training model
         model = TrainingModel(learning_rate, char_dim, config['params']['token_dim'], config['params']['num_chars'],
                               num_classes, batch_size, config['params']['num_tokens_left'],
-                              config['params']['num_tokens_right'], config['params']['token_num_layers'])
+                              config['params']['num_tokens_right'], config['params']['token_num_layers'],
+                              config['params']['layers'])
 
         # get a session
         sess = self._init_session(model)
@@ -95,7 +100,8 @@ class Session(object):
         # create a prediction model
         model = PredictionModel(char_dim, config['params']['token_dim'], config['params']['num_chars'],
                                 num_classes, batch_size, config['params']['num_tokens_left'],
-                                config['params']['num_tokens_right'], config['params']['token_num_layers'])
+                                config['params']['num_tokens_right'], config['params']['token_num_layers'],
+                                config['params']['token_num_layers'])
 
         # get a session
         sess = self._init_session(model)
@@ -142,7 +148,7 @@ class Session(object):
 
     def _get_session_dir(self, latest_session: bool = False, session_id: int = 0):
         training_dir = os.path.join('..', 'training')
-        latest_session_id = self._get_latest_session_id(training_dir)
+        latest_session_id = self._get_latest_session_id(training_dir, 'session')
 
         if latest_session:
             session_id = latest_session_id
@@ -155,12 +161,19 @@ class Session(object):
 
         return session_dir
 
-    def _get_latest_session_id(self, training_dir):
+    def _get_latest_session_id(self, training_dir, prefix):
         """
         Get an ID of the last saved configuration
         """
-        dirs = sorted(os.listdir(training_dir), reverse=True)
-        latest_session_id = int(dirs[0].split('_')[1]) if dirs else 0
+        prefix += '_'
+        latest_session_id = 0
+
+        dirs = os.listdir(training_dir)
+        for dir in dirs:
+            if dir.startswith(prefix):
+                session_id = int(dir[len(prefix):])
+                if session_id > latest_session_id:
+                    latest_session_id = session_id
 
         return latest_session_id
 

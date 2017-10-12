@@ -1,5 +1,7 @@
 import tensorflow as tf
 from tensorflow.contrib import rnn
+
+import utils
 from abstract_model import AbstractModel
 
 
@@ -12,7 +14,8 @@ class PredictionModel(AbstractModel):
                  batch_size: int,  # number of tokens in a batch
                  num_tokens_left: int,  # token class depends on X tokens to the left
                  num_tokens_right: int,  # token class depends on X tokens to the right
-                 token_num_layers: int = 1):
+                 token_num_layers: int = 1,
+                 layers: tuple = ('i', 'o')):
 
         super().__init__()
 
@@ -45,19 +48,36 @@ class PredictionModel(AbstractModel):
             # dim: [batch_size + num_tokens_left + num_tokens_right, num_chars]
             vectorized_tokens = tf.pad(vectorized_tokens, [[num_tokens_left, num_tokens_right], [0, 0]])
 
-            # build full-connected layer
+            # build vectors for fully connected layers
             num_related_tokens = num_tokens_left + num_tokens_right + 1
-            x = []
 
+            x = []
             for i in range(0, batch_size):
                 tokens_group = vectorized_tokens[i:i + num_related_tokens]  # dim: [num_related_tokens, token_dim]
                 x.append(tf.reshape(tokens_group, [token_dim * num_related_tokens]))
 
             x = tf.stack(x)  # dim: [batch_size, token_dim * num_related_tokens]
 
-            W = tf.Variable(tf.zeros([token_dim * num_related_tokens, num_classes]))
-            b = tf.Variable(tf.zeros([num_classes]))
-            self._raw_predictions = tf.matmul(x, W) + b  # dim: [batch_size, num_classes]
+            # build the layers
+            io_dims = {
+                'i': token_dim * num_related_tokens,  # number of units in the input layer
+                'o': num_classes,  # number of units in the output layer
+            }
+
+            layer_output = x
+            for i in range(0, len(layers) - 1):
+                # get dimensions for the next layer
+                layer_dim_1 = utils.eval_expr(layers[i], io_dims)
+                layer_dim_2 = utils.eval_expr(layers[i + 1], io_dims)
+
+                # get the layer output
+                w = tf.Variable(tf.zeros([layer_dim_1, layer_dim_2]))
+                b = tf.Variable(tf.zeros([layer_dim_2]))
+                layer_output = tf.matmul(layer_output, w) + b
+                if i != len(layers) - 2:
+                    layer_output = tf.nn.tanh(layer_output)
+
+            self._raw_predictions = layer_output  # dim: [batch_size, num_classes]
 
             # predictions
             self._predictions = tf.argmax(self._raw_predictions, 1)  # dim: [batch_size]
