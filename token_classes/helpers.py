@@ -3,8 +3,10 @@ import logging
 
 
 def write_errors_file(tokens_file: str, output_file: str, token_errors: dict, classes_missed: list,
-                      classes_wrong: list, classes_dict: dict, limit: int = 0, offset: int = 0):
-    logger = logging.getLogger(__name__)
+                      classes_wrong: list, classes_dict: dict, limit: int = 0, offset: int = 0,
+                      logger: logging.Logger = None):
+    if logger is None:
+        logger = logging.getLogger(__name__)
 
     with open(output_file, mode='w', encoding='utf8') as of:
         classes_names = [''] * len(classes_dict)

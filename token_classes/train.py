@@ -1,9 +1,5 @@
-import numpy as np
 from token_classes.session import Session
-import logging
 
-np.set_printoptions(suppress=True)  # , threshold=np.nan)
-logging.basicConfig(level=logging.DEBUG)
 
 restore_latest_session = False  # restores the last session or creates new one (if True, overrides session_id)
 session_id = 0  # use particular session ID, it restores existing session or creates new one
@@ -32,7 +28,7 @@ checkpoint_steps = 5000  # how often to save a model and check an accuracy
 tokens_limit = 0
 
 # create session
-session = Session(restore_latest_session, session_id, default_config)
+session = Session(__file__, restore_latest_session, session_id, default_config)
 
 # run training
 session.train(all_tokens_file, batch_size, learning_rate, checkpoint_steps, tokens_limit)

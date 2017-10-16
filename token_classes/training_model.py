@@ -1,5 +1,6 @@
 import tensorflow as tf
 from token_classes.prediction_model import PredictionModel
+import logging
 
 
 class TrainingModel(PredictionModel):
@@ -13,10 +14,11 @@ class TrainingModel(PredictionModel):
                  num_tokens_left: int,  # token class depends on X tokens to the left
                  num_tokens_right: int,  # token class depends on X tokens to the right
                  token_num_layers: int = 1,
-                 layers: tuple = ('i', 'o')):
+                 layers: tuple = ('i', 'o'),
+                 logger: logging.Logger = None):
 
         super().__init__(char_dim, token_dim, num_chars, num_classes, batch_size, num_tokens_left,
-                         num_tokens_right, token_num_layers, layers)
+                         num_tokens_right, token_num_layers, layers, logger)
 
         # modifying the training model
         with self._graph.as_default():

@@ -1,8 +1,8 @@
 import tensorflow as tf
 from tensorflow.contrib import rnn
-
 import utils
 from abstract_model import AbstractModel
+import logging
 
 
 class PredictionModel(AbstractModel):
@@ -15,9 +15,10 @@ class PredictionModel(AbstractModel):
                  num_tokens_left: int,  # token class depends on X tokens to the left
                  num_tokens_right: int,  # token class depends on X tokens to the right
                  token_num_layers: int = 1,
-                 layers: tuple = ('i', 'o')):
+                 layers: tuple = ('i', 'o'),
+                 logger: logging.Logger = None):
 
-        super().__init__()
+        super().__init__(logger)
 
         # build the model
         with self._graph.as_default():
@@ -71,8 +72,8 @@ class PredictionModel(AbstractModel):
                 layer_dim_2 = utils.eval_expr(layers[i + 1], io_dims)
 
                 # get the layer output
-                w = tf.Variable(tf.zeros([layer_dim_1, layer_dim_2]))
-                b = tf.Variable(tf.zeros([layer_dim_2]))
+                w = tf.Variable(tf.random_normal([layer_dim_1, layer_dim_2]))
+                b = tf.Variable(tf.random_normal([layer_dim_2]))
                 layer_output = tf.matmul(layer_output, w) + b
                 if i != len(layers) - 2:
                     layer_output = tf.nn.tanh(layer_output)

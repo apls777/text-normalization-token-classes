@@ -5,8 +5,9 @@ from utils import DataSets
 
 
 def read_data(all_tokens_file: str, chars_groups_file: str, token_classes_file: str,
-              num_chars: int, limit: int = 0, offset: int = 0) -> (DataSets, int, int):
-    logger = logging.getLogger(__name__)
+              num_chars: int, limit: int = 0, offset: int = 0, logger: logging.Logger = None) -> (DataSets, int, int):
+    if logger is None:
+        logger = logging.getLogger(__name__)
 
     # read chars groups
     chars_dict, char_dim = read_chars_groups(chars_groups_file)
@@ -101,8 +102,10 @@ def get_class_id(class_name: str, classes_dict: dict) -> int:
     return classes_dict[class_name]
 
 
-def read_chars_groups(chars_groups_file: str) -> (dict, int):
-    logger = logging.getLogger(__name__)
+def read_chars_groups(chars_groups_file: str, logger: logging.Logger = None) -> (dict, int):
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
     logger.debug('Reading the char groups: "%s"' % chars_groups_file)
 
     with open(chars_groups_file, mode='r', encoding='utf8') as f:
@@ -121,8 +124,10 @@ def read_chars_groups(chars_groups_file: str) -> (dict, int):
     return chars_dict, char_dim
 
 
-def read_token_classes(token_classes_file: str) -> (dict, int):
-    logger = logging.getLogger(__name__)
+def read_token_classes(token_classes_file: str, logger: logging.Logger = None) -> (dict, int):
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
     logger.debug('Reading the token classes: "%s"' % token_classes_file)
 
     with open(token_classes_file, mode='r', encoding='utf8') as f:

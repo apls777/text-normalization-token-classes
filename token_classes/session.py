@@ -10,20 +10,23 @@ from abstract_model import AbstractModel
 from token_classes.helpers import write_errors_file
 from token_classes.prediction_model import PredictionModel
 from token_classes.training_model import TrainingModel
+import sys
 
 
 class Session(object):
-    def __init__(self, latest_session: bool = False, session_id: int = 0, default_config: dict = None):
-        self._logger = logging.getLogger(__name__)
-
+    def __init__(self, script_filename, latest_session: bool = False, session_id: int = 0, default_config: dict = None):
         # session directory
         self._session_dir = self._get_session_dir(latest_session, session_id)
 
         # paths to checkpoints and tensorboard logs
         self._checkpoints_dir = os.path.join(self._session_dir, 'checkpoints')
         self._logs_dir = os.path.join(self._session_dir, 'logs')
+        utils.check_path(self._logs_dir)
 
-        # load configuration
+        # logger configuration
+        self._logger = self._get_logger(script_filename)
+
+        # load a model configuration
         self._config = self._read_config(self._session_dir)
         if not self._config:
             if default_config is not None:
@@ -33,30 +36,25 @@ class Session(object):
             else:
                 raise ValueError('Config not loaded')
 
-    @property
-    def session_dir(self):
-        return self._session_dir
-
     def train(self, all_tokens_file: str, batch_size: int, learning_rate: float, checkpoint_steps: int,
-              tokens_limit: int = 0):
+              tokens_limit: int = 0, tokens_offset: int = 0):
         config = self._config
 
         # read the training data
         data_sets, char_dim, num_classes = ds.read_data(all_tokens_file, config['files']['chars_groups'],
                                                         config['files']['token_classes'], config['params']['num_chars'],
-                                                        tokens_limit)
+                                                        tokens_limit, tokens_offset, self._logger)
 
         # create a training model
         model = TrainingModel(learning_rate, char_dim, config['params']['token_dim'], config['params']['num_chars'],
                               num_classes, batch_size, config['params']['num_tokens_left'],
                               config['params']['num_tokens_right'], config['params']['token_num_layers'],
-                              config['params']['layers'])
+                              config['params']['layers'], self._logger)
 
         # get a session
         sess = self._init_session(model)
 
         # init summary writer
-        utils.check_path(self._logs_dir)
         summary_writer = tf.summary.FileWriter(self._logs_dir, sess.graph)
 
         self._logger.debug('Start training')
@@ -95,13 +93,13 @@ class Session(object):
         # read the training data
         data_sets, char_dim, num_classes = ds.read_data(tokens_file, config['files']['chars_groups'],
                                                         config['files']['token_classes'], config['params']['num_chars'],
-                                                        limit, offset)
+                                                        limit, offset, self._logger)
 
         # create a prediction model
         model = PredictionModel(char_dim, config['params']['token_dim'], config['params']['num_chars'],
                                 num_classes, batch_size, config['params']['num_tokens_left'],
                                 config['params']['num_tokens_right'], config['params']['token_num_layers'],
-                                config['params']['token_num_layers'])
+                                config['params']['token_num_layers'], self._logger)
 
         # get a session
         sess = self._init_session(model)
@@ -141,9 +139,9 @@ class Session(object):
         self._logger.debug('Accuracy: ' + str(accuracy / c))
         self._logger.debug('Start writing the errors file')
 
-        classes_dict, num_classes = ds.read_token_classes(config['files']['token_classes'])
+        classes_dict, num_classes = ds.read_token_classes(config['files']['token_classes'], self._logger)
         write_errors_file(tokens_file, errors_file, tokens_errors, classes_missed, classes_wrong, classes_dict, limit,
-                          offset)
+                          offset, self._logger)
         sess.close()
 
     def _get_session_dir(self, latest_session: bool = False, session_id: int = 0):
@@ -236,3 +234,26 @@ class Session(object):
         checkpoint_path = os.path.join(self._checkpoints_dir, 'model.ckpt')
 
         return saver.save(sess, checkpoint_path, global_step=global_step)
+
+    def _get_logger(self, script_filename, level: int = logging.DEBUG):
+        # path to the log file
+        log_filename = os.path.splitext(os.path.basename(script_filename))[0] + '.log'
+        log_filename = os.path.join(self._logs_dir, log_filename)
+
+        # formatter
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+
+        # output to the console
+        std_handler = logging.StreamHandler(sys.stdout)
+        std_handler.setFormatter(formatter)
+
+        # output to the log file
+        file_handler = logging.FileHandler(log_filename, mode='a')
+        file_handler.setFormatter(formatter)
+
+        logger = logging.getLogger('session')
+        logger.addHandler(std_handler)
+        logger.addHandler(file_handler)
+        logger.setLevel(level)
+
+        return logger
