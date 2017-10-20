@@ -57,7 +57,8 @@ class Session(object):
         # init summary writer
         summary_writer = tf.summary.FileWriter(self._logs_dir, sess.graph)
 
-        self._logger.debug('Start training')
+        self._logger.debug('===== Start training =====')
+        self._logger.debug('Batch Size=%d; Learning Rate=%f' % (batch_size, learning_rate))
 
         # start training
         while True:
@@ -99,7 +100,7 @@ class Session(object):
         model = PredictionModel(char_dim, config['params']['token_dim'], config['params']['num_chars'],
                                 num_classes, batch_size, config['params']['num_tokens_left'],
                                 config['params']['num_tokens_right'], config['params']['token_num_layers'],
-                                config['params']['token_num_layers'], self._logger)
+                                config['params']['layers'], self._logger)
 
         # get a session
         sess = self._init_session(model)
@@ -110,12 +111,12 @@ class Session(object):
         accuracy = 0
         c = 0
 
-        self._logger.debug('Start predicting')
+        self._logger.debug('===== Start predicting =====')
 
         while True:
             # get batch of data
-            data, labels, keys = data_sets.train.next_batch(batch_size)
-            if data_sets.train.epoch == 2:
+            data, labels, keys = data_sets.validation.next_batch(batch_size)
+            if data_sets.validation.epoch > 1:
                 break
 
             predictions = model.get_predictions(sess, data)
