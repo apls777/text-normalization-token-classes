@@ -1,7 +1,7 @@
 import csv
 import logging
-from data_set import DataSet
-from utils import DataSets
+from text_norm.data_set import DataSet
+from text_norm.utils import DataSets
 
 
 def read_data(all_tokens_file: str, chars_groups_file: str, token_classes_file: str,

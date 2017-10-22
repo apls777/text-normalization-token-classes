@@ -1,6 +1,6 @@
-import tensorflow as tf
-from token_classes.prediction_model import PredictionModel
 import logging
+import tensorflow as tf
+from text_norm.models.token_classes.prediction_model import PredictionModel
 
 
 class TrainingModel(PredictionModel):

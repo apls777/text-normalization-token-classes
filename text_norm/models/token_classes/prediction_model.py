@@ -1,8 +1,8 @@
+import logging
 import tensorflow as tf
 from tensorflow.contrib import rnn
-import utils
-from abstract_model import AbstractModel
-import logging
+from text_norm.abstract_model import AbstractModel
+from text_norm import utils
 
 
 class PredictionModel(AbstractModel):

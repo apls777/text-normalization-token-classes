@@ -1,11 +1,20 @@
-import os
 import errno
+import os
+import re
 import typing
 import numpy as np
-from data_set import DataSet
-import re
+from text_norm.data_set import DataSet
+
 
 DataSets = typing.NamedTuple('DataSets', [('train', DataSet), ('validation', DataSet), ('test', DataSet)])
+
+
+def root_dir(path: str = ''):
+    res_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if path:
+        res_path = os.path.join(res_path, path)
+
+    return res_path
 
 
 def check_path(path):

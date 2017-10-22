@@ -1,22 +1,23 @@
 import json
 import logging
 import os
+import sys
 from shutil import copyfile
 import numpy as np
 import tensorflow as tf
-import token_classes.data_sets as ds
-import utils
-from abstract_model import AbstractModel
-from token_classes.helpers import write_errors_file
-from token_classes.prediction_model import PredictionModel
-from token_classes.training_model import TrainingModel
-import sys
+import text_norm.models.token_classes.data_sets as ds
+from text_norm.abstract_model import AbstractModel
+from text_norm import utils
+from text_norm.models.token_classes.helpers import write_errors_file
+from text_norm.models.token_classes.prediction_model import PredictionModel
+from text_norm.models.token_classes.training_model import TrainingModel
+from text_norm.utils import root_dir
 
 
 class Session(object):
-    def __init__(self, script_filename, latest_session: bool = False, session_id: int = 0, default_config: dict = None):
+    def __init__(self, script_filename, use_last_session: bool = False, session_id: int = 0, default_config: dict = None):
         # session directory
-        self._session_dir = self._get_session_dir(latest_session, session_id)
+        self._session_dir = self._get_session_dir(use_last_session, session_id)
 
         # paths to checkpoints and tensorboard logs
         self._checkpoints_dir = os.path.join(self._session_dir, 'checkpoints')
@@ -41,8 +42,10 @@ class Session(object):
         config = self._config
 
         # read the training data
-        data_sets, char_dim, num_classes = ds.read_data(all_tokens_file, config['files']['chars_groups'],
-                                                        config['files']['token_classes'], config['params']['num_chars'],
+        chars_groups_filename = os.path.join(self._session_dir, config['files']['chars_groups'])
+        token_classes_filename = os.path.join(self._session_dir, config['files']['token_classes'])
+        data_sets, char_dim, num_classes = ds.read_data(all_tokens_file, chars_groups_filename,
+                                                        token_classes_filename, config['params']['num_chars'],
                                                         tokens_limit, tokens_offset, self._logger)
 
         # create a training model
@@ -145,36 +148,43 @@ class Session(object):
                           offset, self._logger)
         sess.close()
 
-    def _get_session_dir(self, latest_session: bool = False, session_id: int = 0):
-        training_dir = os.path.join('..', 'training')
-        latest_session_id = self._get_latest_session_id(training_dir, 'session')
+    def _get_session_dir(self, use_last_session: bool = False, session_id: int = 0):
+        training_dir = root_dir(os.path.join('training', os.path.basename(os.path.dirname(__file__))))
+        last_session_id = self._get_last_session_id(training_dir)
 
-        if latest_session:
-            session_id = latest_session_id
+        if session_id > last_session_id:
+            raise ValueError('Session ID can\'t be higher that the last session ID')
+
+        if use_last_session:
+            session_id = last_session_id
 
         if not session_id:
-            session_id = latest_session_id + 1
+            session_id = last_session_id + 1
+
+            # update the last session ID
+            with open(os.path.join(training_dir, 'last_session'), mode='w') as f:
+                f.write(str(session_id))
 
         # session directory
         session_dir = os.path.join(training_dir, 'session_%d' % session_id)
+        utils.check_path(session_dir)
 
         return session_dir
 
-    def _get_latest_session_id(self, training_dir, prefix):
+    def _get_last_session_id(self, training_dir) -> int:
         """
-        Get an ID of the last saved configuration
+        Get an ID of the last started session
         """
-        prefix += '_'
-        latest_session_id = 0
 
-        dirs = os.listdir(training_dir)
-        for dir in dirs:
-            if dir.startswith(prefix):
-                session_id = int(dir[len(prefix):])
-                if session_id > latest_session_id:
-                    latest_session_id = session_id
+        session_filename = os.path.join(training_dir, 'last_session')
 
-        return latest_session_id
+        if not os.path.exists(session_filename):
+            return 0
+
+        with open(session_filename, mode='r') as f:
+            last_session_id = int(f.readline())
+
+        return last_session_id
 
     def _read_config(self, session_dir: str) -> dict:
         config_file = os.path.join(session_dir, 'config.json')
@@ -197,11 +207,12 @@ class Session(object):
         # copy required files to the session directory
         files_dir = os.path.join(session_dir, 'files')
         utils.check_path(files_dir)
-        for key, filename in config['files'].items():
-            new_filename = os.path.join(files_dir, os.path.basename(filename))
-            copyfile(filename, new_filename)
-            config['files'][key] = new_filename
-            self._logger.debug('File "%s" was copied' % filename)
+        for key, file_path in config['files'].items():
+            file_path = os.path.join(os.path.dirname(__file__), file_path)
+            filename = os.path.basename(file_path)
+            copyfile(file_path, os.path.join(files_dir, filename))
+            config['files'][key] = 'files/' + filename
+            self._logger.debug('File "%s" was copied' % file_path)
 
         # create new config file
         config_file = os.path.join(session_dir, 'config.json')
