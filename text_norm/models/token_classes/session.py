@@ -91,12 +91,14 @@ class Session(object):
 
                 self._logger.info('Step=%d, Loss=%.5f, Accuracy=%.5f' % (global_step, cost, accuracy))
 
-    def collect_errors(self, tokens_file: str, errors_file: str, batch_size: int, limit: int = 0, offset: int = 0):
+    def collect_errors(self, tokens_file: str, batch_size: int, limit: int = 0, offset: int = 0):
         config = self._config
 
         # read the training data
-        data_sets, char_dim, num_classes = ds.read_data(tokens_file, config['files']['chars_groups'],
-                                                        config['files']['token_classes'], config['params']['num_chars'],
+        chars_groups_filename = os.path.join(self._session_dir, config['files']['chars_groups'])
+        token_classes_filename = os.path.join(self._session_dir, config['files']['token_classes'])
+        data_sets, char_dim, num_classes = ds.read_data(tokens_file, chars_groups_filename,
+                                                        token_classes_filename, config['params']['num_chars'],
                                                         limit, offset, self._logger)
 
         # create a prediction model
@@ -143,7 +145,8 @@ class Session(object):
         self._logger.debug('Accuracy: ' + str(accuracy / c))
         self._logger.debug('Start writing the errors file')
 
-        classes_dict, num_classes = ds.read_token_classes(config['files']['token_classes'], self._logger)
+        classes_dict, num_classes = ds.read_token_classes(token_classes_filename, self._logger)
+        errors_file = os.path.join(self._logs_dir, 'errors.txt')
         write_errors_file(tokens_file, errors_file, tokens_errors, classes_missed, classes_wrong, classes_dict, limit,
                           offset, self._logger)
         sess.close()
