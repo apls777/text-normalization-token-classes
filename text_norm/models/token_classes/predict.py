@@ -3,8 +3,8 @@ from text_norm.utils import root_dir
 
 
 # create session
-session_id = 13
-session = Session(__file__, False, session_id)
+session_id = 'session_13'
+session = Session(__file__, session_id)
 
 # prediction parameters
 all_tokens_file = root_dir('data/train/all_tokens.csv')

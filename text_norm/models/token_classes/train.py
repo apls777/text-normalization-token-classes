@@ -3,13 +3,10 @@ from text_norm.models.token_classes.session import Session
 from text_norm.utils import root_dir
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-r', action='store_true', help='Restore the last session')
-parser.add_argument('-s', type=int, default=0, help='Session ID to continue a training')
+parser.add_argument('--session', type=str, default=None, help='Session ID to continue a training')
 
 args = parser.parse_args()
-
-restore_latest_session = args.r  # restores the last session or creates new one (if True, overrides session_id)
-session_id = args.s  # use particular session ID, it restores existing session or creates new one
+session_id = args.session  # use a particular session ID, it restores existing session or creates new one
 
 # default model configuration
 default_config = {
@@ -35,7 +32,7 @@ checkpoint_steps = 5000  # how often to save a model and check an accuracy
 tokens_limit = 0
 
 # create session
-session = Session(__file__, restore_latest_session, session_id, default_config)
+session = Session(__file__, session_id, default_config)
 
 # run training
 session.train(all_tokens_file, batch_size, learning_rate, checkpoint_steps, tokens_limit)

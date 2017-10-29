@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import sys
+from datetime import datetime
 from shutil import copyfile
 import numpy as np
 import tensorflow as tf
@@ -15,9 +16,9 @@ from text_norm.utils import root_dir
 
 
 class Session(object):
-    def __init__(self, script_filename, use_last_session: bool = False, session_id: int = 0, default_config: dict = None):
+    def __init__(self, script_filename, session_id: str = None, default_config: dict = None):
         # session directory
-        self._session_dir = self._get_session_dir(use_last_session, session_id)
+        self._session_dir = self._get_session_dir(session_id)
 
         # paths to checkpoints and tensorboard logs
         self._checkpoints_dir = os.path.join(self._session_dir, 'checkpoints')
@@ -151,43 +152,15 @@ class Session(object):
                           offset, self._logger)
         sess.close()
 
-    def _get_session_dir(self, use_last_session: bool = False, session_id: int = 0):
-        training_dir = root_dir(os.path.join('training', os.path.basename(os.path.dirname(__file__))))
-        last_session_id = self._get_last_session_id(training_dir)
-
-        if session_id > last_session_id:
-            raise ValueError('Session ID can\'t be higher that the last session ID')
-
-        if use_last_session:
-            session_id = last_session_id
-
+    def _get_session_dir(self, session_id: str = None):
         if not session_id:
-            session_id = last_session_id + 1
-
-            # update the last session ID
-            with open(os.path.join(training_dir, 'last_session'), mode='w') as f:
-                f.write(str(session_id))
+            session_id = datetime.today().strftime('%y%m%d_%H%M')
 
         # session directory
-        session_dir = os.path.join(training_dir, 'session_%d' % session_id)
+        session_dir = root_dir(os.path.join('training', os.path.basename(os.path.dirname(__file__)), session_id))
         utils.check_path(session_dir)
 
         return session_dir
-
-    def _get_last_session_id(self, training_dir) -> int:
-        """
-        Get an ID of the last started session
-        """
-
-        session_filename = os.path.join(training_dir, 'last_session')
-
-        if not os.path.exists(session_filename):
-            return 0
-
-        with open(session_filename, mode='r') as f:
-            last_session_id = int(f.readline())
-
-        return last_session_id
 
     def _read_config(self, session_dir: str) -> dict:
         config_file = os.path.join(session_dir, 'config.json')
