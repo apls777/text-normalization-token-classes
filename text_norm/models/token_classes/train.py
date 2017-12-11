@@ -1,12 +1,9 @@
-import argparse
+from text_norm import utils
 from text_norm.models.token_classes.session import Session
 from text_norm.utils import root_dir
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--session', type=str, default=None, help='Session ID to continue a training')
 
-args = parser.parse_args()
-session_id = args.session  # use a particular session ID, it restores existing session or creates new one
+session_id = utils.get_session_id()
 
 # default model configuration
 default_config = {

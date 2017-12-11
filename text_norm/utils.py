@@ -1,7 +1,10 @@
+import argparse
 import errno
 import os
 import re
 import typing
+from datetime import datetime
+
 import numpy as np
 from text_norm.data_set import DataSet
 
@@ -50,3 +53,16 @@ def eval_expr(expr: str, values: dict) -> int:
         raise ValueError('Invalid expression')
 
     return int(eval(expr))
+
+
+def get_session_id():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--session', type=str, default=None, help='Session ID')
+
+    args = parser.parse_args()
+    session_id = args.session  # use a particular session ID, it restores existing session or creates new one
+
+    if not session_id:
+        session_id = datetime.today().strftime('%y%m%d_%H%M')
+
+    return session_id
