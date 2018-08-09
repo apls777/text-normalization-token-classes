@@ -1,5 +1,5 @@
 project:
-  name: RuTextNorm
+  name: TextNorm
   remoteDir: /workspace/project
   syncFilters:
     - exclude:
@@ -13,19 +13,19 @@ project:
 instance:
   region: us-east-2
   instanceType: p2.xlarge
-  amiName: SpottyAMI
   maxPrice: 0.4
   volumes:
-    - snapshotName: RuTextNorm
+    - snapshotName: TextNorm
       directory: /workspace
-      size: 5
+      size: 10
   docker:
     image: tensorflow/tensorflow:latest-gpu-py3
     workingDir: /workspace/project
-  ports:
-    - 6006 # TensorBoard
+  ports: [6006, 8888] # TensorBoard and Jupyter Notebook
 scripts:
   train: |
     PYTHONPATH=. python text_norm/models/token_classes/train.py
   tensorboard: |
     tensorboard --logdir /workspace/project/training/token_classes
+  jupyter: |
+    /run_jupyter.sh --allow-root
