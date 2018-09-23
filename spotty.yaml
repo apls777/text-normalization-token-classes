@@ -13,13 +13,13 @@ project:
 instance:
   region: us-east-2
   instanceType: p2.xlarge
-  maxPrice: 0.4
   volumes:
-    - snapshotName: TextNorm
+    - name: TextNorm
       directory: /workspace
-      size: 10
+      size: 15
   docker:
     image: tensorflow/tensorflow:latest-gpu-py3
+    dataRoot: /workspace/docker
     workingDir: /workspace/project
   ports: [6006, 8888] # TensorBoard and Jupyter Notebook
 scripts:
